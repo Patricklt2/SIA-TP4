@@ -46,24 +46,39 @@ def plot_country_rankings(scores, countries):
 
 def plot_explained_variance(pca):
     explained_variance_ratio = pca.explained_variance_ratio_
-    
     cumulative_variance = np.cumsum(explained_variance_ratio)
-    
-    components = range(1, len(explained_variance_ratio) + 1)
-    
+    components = np.arange(1, len(explained_variance_ratio) + 1)
+
     plt.figure(figsize=(10, 6))
-    
-    sns.barplot(x=list(components), y=explained_variance_ratio, color='skyblue', label='Varianza Individual')
-    
-    plt.plot(components, cumulative_variance, marker='o', linestyle='-', color='red', label='Varianza Acumulada')
-    
+
+    ax = sns.barplot(
+        x=components,
+        y=explained_variance_ratio,
+        color='skyblue',
+        label='Varianza Individual'
+    )
+
+    x_coords = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+
+    plt.plot(
+        x_coords,
+        cumulative_variance,
+        marker='o',
+        linestyle='-',
+        color='red',
+        label='Varianza Acumulada'
+    )
     plt.title('Varianza Explicada por Componente Principal')
     plt.xlabel('Componente Principal')
     plt.ylabel('Proporción de Varianza Explicada')
     plt.xticks(components)
+    plt.ylim(0, 1.05)
     plt.legend()
     plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
     plt.show()
+
+
 
 def plot_biplot(scores, loadings, countries, features):
     plt.figure(figsize=(12, 12))
