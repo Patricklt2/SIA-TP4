@@ -129,3 +129,206 @@ def plot_oja_data_projection(data, w, feature_names):
     plt.ylabel('Frecuencia')
     plt.savefig(os.path.join(OUTPUT_DIR, 'oja_data_projection.png'), bbox_inches='tight')
     plt.close()
+
+# ================= NEW HEATMAP VISUALIZATIONS =================
+
+def plot_feature_heatmaps(kohonen_network, data, feature_names, country_labels):
+    """
+    Create individual heatmaps for each economic feature showing 
+    how traits are distributed across SOM neurons
+    """
+    ensure_output_dir()
+    
+    k = kohonen_network.k
+    
+    # Create output directory for feature heatmaps
+    heatmap_dir = os.path.join(OUTPUT_DIR, 'feature_heatmaps')
+    if not os.path.exists(heatmap_dir):
+        os.makedirs(heatmap_dir)
+    
+    # Map each country to its neuron
+    country_mappings = kohonen_network.map_data(data)
+    
+    # For each feature, create a heatmap
+    for feature_idx, feature_name in enumerate(feature_names):
+        feature_map = np.zeros((k, k))
+        feature_counts = np.zeros((k, k))
+        
+        # Aggregate feature values for each neuron
+        for country_idx, (row, col) in enumerate(country_mappings):
+            feature_value = data[country_idx, feature_idx]
+            feature_map[row, col] += feature_value
+            feature_counts[row, col] += 1
+        
+        # Calculate average feature value per neuron
+        # Avoid division by zero
+        avg_feature_map = np.divide(feature_map, feature_counts, 
+                                  out=np.zeros_like(feature_map), 
+                                  where=feature_counts!=0)
+        
+        # Create the heatmap
+        plt.figure(figsize=(10, 8))
+        
+        # Use diverging colormap centered at 0 (since data is standardized)
+        vmax = max(abs(avg_feature_map.min()), abs(avg_feature_map.max()))
+        
+        ax = sns.heatmap(avg_feature_map, 
+                        cmap='RdBu_r',  # Red-Blue diverging
+                        center=0,
+                        vmin=-vmax, 
+                        vmax=vmax,
+                        annot=True, 
+                        fmt='.2f',
+                        square=True,
+                        linewidths=0.5,
+                        cbar_kws={'label': f'{feature_name} (Standardized)'})
+        
+        plt.title(f'Distribución de {feature_name} en el Mapa de Kohonen\n'
+                 f'(Rojo = Alto, Azul = Bajo)', fontsize=14, pad=20)
+        plt.xlabel('Coordenada X del Neurón')
+        plt.ylabel('Coordenada Y del Neurón')
+        
+        # Add text annotations for empty neurons
+        for i in range(k):
+            for j in range(k):
+                if feature_counts[i, j] == 0:
+                    ax.text(j + 0.5, i + 0.5, 'Sin\nPaíses', 
+                           ha='center', va='center', 
+                           fontsize=8, color='gray', alpha=0.7)
+        
+        plt.tight_layout()
+        safe_name = feature_name.replace('.', '_').replace(' ', '_')
+        plt.savefig(os.path.join(heatmap_dir, f'{safe_name}_heatmap.png'), 
+                   bbox_inches='tight', dpi=300)
+        plt.close()
+
+def plot_combined_feature_heatmap(kohonen_network, data, feature_names, country_labels):
+    """
+    Create a comprehensive dashboard showing all features in subplots
+    """
+    ensure_output_dir()
+    
+    k = kohonen_network.k
+    num_features = len(feature_names)
+    
+    # Calculate grid dimensions for subplots
+    cols = 3
+    rows = (num_features + cols - 1) // cols
+    
+    fig, axes = plt.subplots(rows, cols, figsize=(5*cols, 4*rows))
+    fig.suptitle('Panel de Características Económicas - Mapa de Kohonen', 
+                fontsize=16, y=0.98)
+    
+    # Flatten axes for easier indexing
+    if rows == 1:
+        axes = axes.reshape(1, -1)
+    axes_flat = axes.flatten()
+    
+    # Map countries to neurons
+    country_mappings = kohonen_network.map_data(data)
+    
+    for feature_idx, feature_name in enumerate(feature_names):
+        ax = axes_flat[feature_idx]
+        
+        # Calculate feature distribution per neuron
+        feature_map = np.zeros((k, k))
+        feature_counts = np.zeros((k, k))
+        
+        for country_idx, (row, col) in enumerate(country_mappings):
+            feature_value = data[country_idx, feature_idx]
+            feature_map[row, col] += feature_value
+            feature_counts[row, col] += 1
+        
+        # Average values
+        avg_feature_map = np.divide(feature_map, feature_counts, 
+                                  out=np.zeros_like(feature_map), 
+                                  where=feature_counts!=0)
+        
+        # Create heatmap
+        vmax = max(abs(avg_feature_map.min()), abs(avg_feature_map.max()))
+        
+        sns.heatmap(avg_feature_map, 
+                   cmap='RdBu_r',
+                   center=0,
+                   vmin=-vmax, 
+                   vmax=vmax,
+                   annot=True, 
+                   fmt='.1f',
+                   square=True,
+                   cbar=True,
+                   ax=ax,
+                   linewidths=0.3)
+        
+        ax.set_title(feature_name, fontsize=12, pad=10)
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.tick_params(labelsize=8)
+    
+    # Hide unused subplots
+    for idx in range(num_features, len(axes_flat)):
+        axes_flat[idx].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, 'combined_feature_heatmap.png'), 
+               bbox_inches='tight', dpi=300)
+    plt.close()
+
+
+
+def plot_neuron_specialization_heatmap(kohonen_network, data, feature_names, country_labels):
+    """
+    Show which neurons specialize in which economic profiles
+    """
+    ensure_output_dir()
+    
+    k = kohonen_network.k
+    country_mappings = kohonen_network.map_data(data)
+    
+    # Create specialization matrix: neurons vs features
+    specialization_matrix = np.zeros((k*k, len(feature_names)))
+    neuron_labels = []
+    
+    # Calculate average feature values for each neuron
+    for neuron_idx in range(k*k):
+        row = neuron_idx // k
+        col = neuron_idx % k
+        neuron_labels.append(f'N({row},{col})')
+        
+        # Find countries assigned to this neuron
+        countries_in_neuron = [i for i, (r, c) in enumerate(country_mappings) 
+                              if r == row and c == col]
+        
+        if countries_in_neuron:
+            # Average feature values for countries in this neuron
+            neuron_features = np.mean(data[countries_in_neuron], axis=0)
+            specialization_matrix[neuron_idx] = neuron_features
+    
+    # Create the heatmap
+    plt.figure(figsize=(12, 16))
+    
+    # Filter out empty neurons for cleaner visualization
+    non_empty_neurons = np.any(specialization_matrix != 0, axis=1)
+    filtered_matrix = specialization_matrix[non_empty_neurons]
+    filtered_labels = [neuron_labels[i] for i in range(len(neuron_labels)) if non_empty_neurons[i]]
+    
+    ax = sns.heatmap(filtered_matrix,
+                    xticklabels=feature_names,
+                    yticklabels=filtered_labels,
+                    cmap='RdBu_r',
+                    center=0,
+                    annot=True,
+                    fmt='.2f',
+                    linewidths=0.5,
+                    cbar_kws={'label': 'Valor Promedio de Característica (Estandarizado)'})
+    
+    plt.title('Especialización de Neuronas por Características Económicas\n'
+             '(Rojo = Alto, Azul = Bajo)', fontsize=14, pad=20)
+    plt.xlabel('Características Económicas')
+    plt.ylabel('Neuronas del Mapa de Kohonen')
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, 'neuron_specialization_heatmap.png'), 
+               bbox_inches='tight', dpi=300)
+    plt.close()

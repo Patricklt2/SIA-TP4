@@ -14,16 +14,22 @@ from utils.graphs import (
     plot_oja_convergence,
     plot_oja_output_evolution,
     plot_oja_data_projection,
+    # New heatmap visualizations
+    plot_feature_heatmaps,
+    plot_combined_feature_heatmap,
+    plot_neuron_specialization_heatmap,
 )
 
-def ejercicio_1_kohonen(scaled_data, country_labels):
+def ejercicio_1_kohonen(scaled_data, country_labels, feature_names):
     input_dim = scaled_data.shape[1]
     k_grid = 5
     epochs = 500 * input_dim
     
+    print("🗺️ Entrenando red de Kohonen...")
     koh = Kohonen(grid_size_k=k_grid, input_dim=input_dim)
     koh.train(scaled_data, epochs=epochs)
 
+    print("📊 Generando visualizaciones básicas...")
     plot_kohonen_org_map_results(koh, scaled_data, country_labels)
     
     u_matrix = koh.get_unified_matrix()
@@ -31,6 +37,21 @@ def ejercicio_1_kohonen(scaled_data, country_labels):
     
     activation_map = koh.get_activation_map(scaled_data)
     plot_activation_map(activation_map)
+    
+    print("🔥 Generando mapas de calor de características...")
+    # NEW: Individual feature heatmaps
+    plot_feature_heatmaps(koh, scaled_data, feature_names, country_labels)
+    
+    print("📋 Generando panel combinado de características...")
+    # NEW: Combined feature dashboard
+    plot_combined_feature_heatmap(koh, scaled_data, feature_names, country_labels)
+    
+    print("🧠 Generando mapa de especialización neuronal...")
+    # NEW: Neuron specialization analysis
+    plot_neuron_specialization_heatmap(koh, scaled_data, feature_names, country_labels)
+    
+    print("✅ Visualizaciones de Kohonen completadas!")
+    return koh
 
 def ejercicio_1_oja(scaled_data, feature_names):
     input_dim = scaled_data.shape[1]
@@ -72,11 +93,32 @@ if __name__ == "__main__":
     DATA_FILE_PATH = 'data/europe.csv'
     
     try:
+        print("🔄 Cargando y procesando datos de Europa...")
         scaled_data, country_labels, feature_names = load_and_std_europa(DATA_FILE_PATH)
         
-        ejercicio_1_kohonen(scaled_data, country_labels)
-
-        ejercicio_1_oja(scaled_data, feature_names)
+        print(f"📈 Datos cargados: {len(country_labels)} países, {len(feature_names)} características")
+        print(f"🏷️ Características: {', '.join(feature_names)}")
+        print()
+        
+        print("=" * 60)
+        print("🗺️ EJERCICIO 1.1: RED DE KOHONEN")
+        print("=" * 60)
+        kohonen_network = ejercicio_1_kohonen(scaled_data, country_labels, feature_names)
+        
+        print("\n" + "=" * 60)
+        print("🔢 EJERCICIO 1.2: REGLA DE OJA")  
+        print("=" * 60)
+        oja_diff = ejercicio_1_oja(scaled_data, feature_names)
+        
+        print(f"\n✅ Análisis completado!")
+        print(f"📊 Diferencia Oja vs sklearn PCA: {oja_diff:.6f}")
+        print(f"🗂️ Resultados guardados en: results/")
+        print(f"🔥 Mapas de calor guardados en: results/feature_heatmaps/")
         
     except FileNotFoundError:
-        print(f"File not found :)")
+        print(f"❌ Archivo no encontrado: {DATA_FILE_PATH}")
+        print("🔍 Asegúrate de que el archivo europe.csv esté en la carpeta data/")
+    except Exception as e:
+        print(f"❌ Error durante la ejecución: {str(e)}")
+        import traceback
+        traceback.print_exc()
