@@ -130,6 +130,288 @@ def plot_oja_data_projection(data, w, feature_names):
     plt.savefig(os.path.join(OUTPUT_DIR, 'oja_data_projection.png'), bbox_inches='tight')
     plt.close()
 
+def plot_kohonen_k3_results(kohonen_network, data, country_labels):
+    """
+    Create the specific k=3 visualization with country assignments and U-matrix
+    matching the style shown in the presentation slide
+    """
+    ensure_output_dir()
+    
+    k = kohonen_network.k
+    assert k == 3, "This function is specifically for k=3 networks"
+    
+    # Country name to abbreviation mapping
+    country_abbrev = {
+        'Iceland': 'ICE', 'Ireland': 'IRE', 'Luxembourg': 'LUX', 'Austria': 'AUS',
+        'Denmark': 'DEN', 'Belgium': 'BEL', 'Switzerland': 'SWI', 'Netherlands': 'NET',
+        'Germany': 'GER', 'Sweden': 'SWE', 'Norway': 'NOR', 'Italy': 'ITA',
+        'Finland': 'FIN', 'Slovenia': 'SLO', 'Czech Republic': 'CZE', 'Slovakia': 'SKO',
+        'Lithuania': 'LIT', 'Latvia': 'LAT', 'Estonia': 'EST', 'United Kingdom': 'UNI',
+        'Spain': 'SPA', 'Bulgaria': 'BUL', 'Ukraine': 'UKR', 'Romania': 'ROM',
+        'Serbia': 'SER', 'Poland': 'POL', 'Croatia': 'CRO', 'Hungary': 'HUN',
+        'Portugal': 'POR', 'Greece': 'GRE', 'France': 'FRA'
+    }
+    
+    # Get country assignments per neuron
+    activation_map = kohonen_network.get_activation_map(data)
+    
+    # Create country assignment map with scores
+    label_map = [[[] for _ in range(k)] for _ in range(k)]
+    country_mappings = kohonen_network.map_data(data)
+    
+    for i, (row, col) in enumerate(country_mappings):
+        country_name = country_labels[i]
+        # Calculate a score based on inverse distance (closer = higher score)
+        winning_neuron = kohonen_network.weights[row, col]
+        distance = np.linalg.norm(data[i] - winning_neuron)
+        # Use a better scoring system: normalize distance and convert to 1-100 scale
+        max_possible_distance = np.sqrt(len(data[i]))  # Max possible distance in standardized space
+        normalized_distance = distance / max_possible_distance
+        score = max(1, int(100 * (1 - normalized_distance)))  # Closer = higher score
+        
+        abbrev = country_abbrev.get(country_name, country_name[:3].upper())
+        label_map[row][col].append(f"{abbrev}: {score}")
+    
+    # Get U-matrix
+    u_matrix = kohonen_network.get_unified_matrix()
+    
+    # Create the visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+    
+    # Left plot: Country assignments with activation counts
+    # Create a background showing activation counts
+    im1 = ax1.imshow(activation_map, cmap='Greens', alpha=0.7)
+    ax1.set_title('Cantidad de Países por Neurona en el tiempo', fontsize=14, pad=20)
+    
+    # Add country labels to each cell
+    for i in range(k):
+        for j in range(k):
+            countries = label_map[i][j]
+            count = len(countries)
+            
+            # Add activation count in corner
+            ax1.text(j + 0.85, i + 0.15, f'{count}', 
+                    ha='center', va='center', fontsize=12, fontweight='bold')
+            
+            if countries:
+                # Create country text with abbreviations and scores
+                country_text = '\n'.join(countries)
+                ax1.text(j, i, country_text, 
+                        ha='center', va='center', fontsize=8, color='black', fontweight='bold')
+    
+    # Style left plot - keep coordinate system but remove visual elements
+    ax1.set_xlim(-0.5, k-0.5)
+    ax1.set_ylim(-0.5, k-0.5)
+    ax1.set_xticks([])
+    ax1.set_yticks([])
+    ax1.set_xticklabels([])
+    ax1.set_yticklabels([])
+    # Don't use axis('off') to maintain proper coordinate system
+    
+    # Add colorbar for left plot
+    cbar1 = plt.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
+    cbar1.set_label('Cantidad de países', rotation=270, labelpad=15)
+    
+    # Right plot: U-Matrix (distances between neurons)
+    im2 = ax2.imshow(u_matrix, cmap='RdYlBu_r', alpha=0.9)
+    ax2.set_title('Distancias promedio entre neuronas vecinas (U-Matrix)', fontsize=14, pad=20)
+    
+    # Add country labels on U-matrix as well
+    for i in range(k):
+        for j in range(k):
+            countries = label_map[i][j]
+            if countries:
+                # Show only first few countries to avoid overcrowding
+                display_countries = countries[:3]  # Show max 3 countries
+                if len(countries) > 3:
+                    display_countries.append(f"... +{len(countries)-3}")
+                country_text = '\n'.join(display_countries)
+                ax2.text(j, i, country_text,
+                        ha='center', va='center', fontsize=8,
+                        color='black', fontweight='bold')
+    
+    # Style right plot - keep coordinate system but remove visual elements  
+    ax2.set_xlim(-0.5, k-0.5)
+    ax2.set_ylim(-0.5, k-0.5)
+    ax2.set_xticks([])
+    ax2.set_yticks([])
+    ax2.set_xticklabels([])
+    ax2.set_yticklabels([])
+    # Don't use axis('off') to maintain proper coordinate system
+    
+    # Add colorbar for right plot
+    cbar2 = plt.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
+    cbar2.set_label('Distancia promedio', rotation=270, labelpad=15)
+    
+    # Add main title
+    fig.suptitle('Resultados para k=3', fontsize=18, fontweight='bold', y=0.95)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, 'kohonen_k3_results.png'), 
+                bbox_inches='tight', dpi=300)
+    plt.show()
+    plt.close()
+
+def plot_kohonen_k_results(kohonen_network, data, country_labels, k_value=None):
+    """
+    Create visualization for any k value with country assignments and U-matrix
+    Works for k=3, k=4, k=5, etc.
+    """
+    ensure_output_dir()
+    
+    k = kohonen_network.k
+    if k_value is None:
+        k_value = k
+    
+    # Country name to abbreviation mapping
+    country_abbrev = {
+        'Iceland': 'ICE', 'Ireland': 'IRE', 'Luxembourg': 'LUX', 'Austria': 'AUS',
+        'Denmark': 'DEN', 'Belgium': 'BEL', 'Switzerland': 'SWI', 'Netherlands': 'NET',
+        'Germany': 'GER', 'Sweden': 'SWE', 'Norway': 'NOR', 'Italy': 'ITA',
+        'Finland': 'FIN', 'Slovenia': 'SLO', 'Czech Republic': 'CZE', 'Slovakia': 'SKO',
+        'Lithuania': 'LIT', 'Latvia': 'LAT', 'Estonia': 'EST', 'United Kingdom': 'UNI',
+        'Spain': 'SPA', 'Bulgaria': 'BUL', 'Ukraine': 'UKR', 'Romania': 'ROM',
+        'Serbia': 'SER', 'Poland': 'POL', 'Croatia': 'CRO', 'Hungary': 'HUN',
+        'Portugal': 'POR', 'Greece': 'GRE', 'France': 'FRA'
+    }
+    
+    # Get country assignments per neuron
+    activation_map = kohonen_network.get_activation_map(data)
+    
+    # Create country assignment map with scores
+    label_map = [[[] for _ in range(k)] for _ in range(k)]
+    country_mappings = kohonen_network.map_data(data)
+    
+    for i, (row, col) in enumerate(country_mappings):
+        country_name = country_labels[i]
+        # Calculate a score based on distance to winning neuron (higher = better match)
+        winning_neuron = kohonen_network.weights[row, col]
+        distance = np.linalg.norm(data[i] - winning_neuron)
+        score = max(1, int(100 - distance * 50))  # Convert distance to score 1-100
+        
+        abbrev = country_abbrev.get(country_name, country_name[:3].upper())
+        label_map[row][col].append(f"{abbrev}: {score}")
+    
+    # Get U-matrix
+    u_matrix = kohonen_network.get_unified_matrix()
+    
+    # Adjust figure size based on k
+    fig_width = max(16, k * 3)
+    fig_height = max(8, k * 2)
+    
+    # Create the visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(fig_width, fig_height))
+    
+    # Left plot: Country assignments with activation counts
+    im1 = ax1.imshow(activation_map, cmap='Greens', alpha=0.7)
+    ax1.set_title('Cantidad de Países por Neurona en el tiempo', fontsize=14, pad=20)
+    
+    # Adjust font sizes based on k
+    count_fontsize = max(10, 16 - k)
+    country_fontsize = max(8, 12 - k)
+    
+    # Add country labels to each cell
+    for i in range(k):
+        for j in range(k):
+            countries = label_map[i][j]
+            
+            if countries:
+                # Limit number of countries displayed based on k
+                max_countries = max(3, 8 - k)
+                display_countries = countries[:max_countries]
+                if len(countries) > max_countries:
+                    display_countries.append(f"... +{len(countries)-max_countries}")
+                
+                country_text = '\n'.join(display_countries)
+                # Use exact integer coordinates for center
+                ax1.text(j, i, country_text, 
+                        ha='center', va='center', fontsize=country_fontsize, 
+                        color='black', fontweight='bold')
+    
+    # Style left plot - keep coordinate system but remove visual elements
+    ax1.set_xlim(-0.5, k-0.5)
+    ax1.set_ylim(-0.5, k-0.5)
+    ax1.set_xticks([])
+    ax1.set_yticks([])
+    ax1.set_xticklabels([])
+    ax1.set_yticklabels([])
+    # Don't use axis('off') to maintain proper coordinate system
+    
+    # Add colorbar for left plot
+    cbar1 = plt.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
+    cbar1.set_label('Cantidad de países', rotation=270, labelpad=15)
+    
+    # Right plot: U-Matrix
+    im2 = ax2.imshow(u_matrix, cmap='RdYlBu_r', alpha=0.9)
+    ax2.set_title('Distancias promedio entre neuronas vecinas (U-Matrix)', fontsize=14, pad=20)
+    
+    # Add country labels on U-matrix as well
+    for i in range(k):
+        for j in range(k):
+            countries = label_map[i][j]
+            if countries:
+                # Show fewer countries for larger k
+                max_display = max(1, 4 - k)
+                display_countries = countries[:max_display]
+                if len(countries) > max_display:
+                    display_countries.append(f"... +{len(countries)-max_display}")
+                country_text = '\n'.join(display_countries)
+                # Use exact integer coordinates for center
+                ax2.text(j, i, country_text,
+                        ha='center', va='center', fontsize=max(8, country_fontsize),
+                        color='black', fontweight='bold')
+    
+    # Style right plot - keep coordinate system but remove visual elements  
+    ax2.set_xlim(-0.5, k-0.5)
+    ax2.set_ylim(-0.5, k-0.5)
+    ax2.set_xticks([])
+    ax2.set_yticks([])
+    ax2.set_xticklabels([])
+    ax2.set_yticklabels([])
+    # Don't use axis('off') to maintain proper coordinate system
+    
+    # Add colorbar for right plot
+    cbar2 = plt.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
+    cbar2.set_label('Distancia promedio', rotation=270, labelpad=15)
+    
+    # Add main title
+    fig.suptitle(f'Resultados para k={k_value}', fontsize=18, fontweight='bold', y=0.95)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, f'kohonen_k{k_value}_results.png'), 
+                bbox_inches='tight', dpi=300)
+    plt.show()
+    plt.close()
+
+def plot_kohonen_comparison(data, country_labels, feature_names, k_values=[3, 4, 5]):
+    """
+    Create and compare Kohonen networks for different k values
+    """
+    ensure_output_dir()
+    
+    print(f"🔄 Generando comparación de redes Kohonen para k={k_values}")
+    
+    for k in k_values:
+        print(f"📊 Entrenando red de Kohonen k={k}...")
+        
+        # Import here to avoid circular imports
+        from models.kohonen import Kohonen
+        
+        # Create and train network
+        koh = Kohonen(grid_size_k=k, input_dim=data.shape[1])
+        epochs = 500 * data.shape[1]  # Same heuristic as main
+        koh.train(data, epochs=epochs)
+        
+        # Generate visualization
+        plot_kohonen_k_results(koh, data, country_labels, k_value=k)
+        
+        # Also generate basic organization map
+        plot_kohonen_org_map_results(koh, data, country_labels)
+        
+        print(f"✅ Guardado: kohonen_k{k}_results.png")
+    
+    print(f"🎯 Comparación completa para k={k_values}")
+
 # ================= NEW HEATMAP VISUALIZATIONS =================
 
 def plot_feature_heatmaps(kohonen_network, data, feature_names, country_labels):

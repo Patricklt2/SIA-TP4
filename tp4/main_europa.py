@@ -18,6 +18,10 @@ from utils.graphs import (
     plot_feature_heatmaps,
     plot_combined_feature_heatmap,
     plot_neuron_specialization_heatmap,
+    # K comparison functions
+    plot_kohonen_k_results,
+    plot_kohonen_comparison,
+    plot_kohonen_k3_results,
 )
 
 def ejercicio_1_kohonen(scaled_data, country_labels, feature_names):
@@ -52,6 +56,44 @@ def ejercicio_1_kohonen(scaled_data, country_labels, feature_names):
     
     print("✅ Visualizaciones de Kohonen completadas!")
     return koh
+
+def ejercicio_kohonen_k_comparison(scaled_data, country_labels, feature_names):
+    """
+    Compare Kohonen networks with different k values (k=3, 4, 5)
+    for presentation analysis
+    """
+    print("\n" + "=" * 60)
+    print("📊 COMPARACIÓN DE REDES KOHONEN (k=3, 4, 5)")
+    print("=" * 60)
+    
+    k_values = [3, 4, 5]
+    networks = {}
+    
+    for k in k_values:
+        print(f"\n🗺️ Entrenando red de Kohonen k={k}...")
+        
+        # Create and train network
+        koh = Kohonen(grid_size_k=k, input_dim=scaled_data.shape[1])
+        epochs = 500 * scaled_data.shape[1]
+        koh.train(scaled_data, epochs=epochs)
+        
+        # Store network for analysis
+        networks[k] = koh
+        
+        # Generate k-specific visualization
+        print(f"📈 Generando visualización k={k}...")
+        plot_kohonen_k_results(koh, scaled_data, country_labels, k_value=k)
+        
+        # Basic stats
+        activation_map = koh.get_activation_map(scaled_data)
+        dead_neurons = np.sum(activation_map == 0)
+        print(f"   📍 Neuronas muertas: {dead_neurons}/{k*k}")
+        print(f"   📊 Países por neurona promedio: {len(country_labels)/(k*k-dead_neurons):.1f}")
+    
+    print(f"\n✅ Comparación k={k_values} completada!")
+    print(f"🗂️ Resultados guardados en: results/kohonen_k*_results.png")
+    
+    return networks
 
 def ejercicio_1_oja(scaled_data, feature_names):
     input_dim = scaled_data.shape[1]
@@ -105,6 +147,9 @@ if __name__ == "__main__":
         print("=" * 60)
         kohonen_network = ejercicio_1_kohonen(scaled_data, country_labels, feature_names)
         
+        # NEW: K Comparison for presentation
+        kohonen_networks = ejercicio_kohonen_k_comparison(scaled_data, country_labels, feature_names)
+        
         print("\n" + "=" * 60)
         print("🔢 EJERCICIO 1.2: REGLA DE OJA")  
         print("=" * 60)
@@ -114,6 +159,7 @@ if __name__ == "__main__":
         print(f"📊 Diferencia Oja vs sklearn PCA: {oja_diff:.6f}")
         print(f"🗂️ Resultados guardados en: results/")
         print(f"🔥 Mapas de calor guardados en: results/feature_heatmaps/")
+        print(f"📊 Comparaciones k=3,4,5 guardadas en: results/kohonen_k*_results.png")
         
     except FileNotFoundError:
         print(f"❌ Archivo no encontrado: {DATA_FILE_PATH}")
