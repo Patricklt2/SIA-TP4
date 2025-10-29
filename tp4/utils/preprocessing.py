@@ -1,7 +1,13 @@
 import os
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler
+from utils.graphs import boxplot
+
+def standardize(X):
+    medias = np.mean(X, axis=0)
+    desvios = np.std(X, axis=0, ddof=0)  
+    X_std = (X - medias) / desvios
+    return X_std
 
 def load_and_std_europa(path=None):
     """
@@ -24,7 +30,10 @@ def load_and_std_europa(path=None):
     numerics_vars = df.columns.drop('Country')
     numerics_data = df[numerics_vars].values.astype(float)
 
-    scaler = StandardScaler()
-    numerics_data_std = scaler.fit_transform(numerics_data)
+    boxplot(numerics_data, numerics_vars, "Antes de la estandarización")
+
+    numerics_data_std = standardize(numerics_data)
+
+    boxplot(numerics_data_std, numerics_vars, "Después de la estandarización")
 
     return numerics_data_std, country_labels, list(numerics_vars)

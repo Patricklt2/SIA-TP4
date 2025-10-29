@@ -10,6 +10,15 @@ def ensure_output_dir():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
+def boxplot(data, labels, title):
+    plt.figure(figsize=(10, 5))
+    plt.boxplot(data, labels=labels, vert=True)
+    plt.title(title)
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
 # Para ver que tan similares son las neuronas
 def plot_unified_matrix(u_matrix):
     ensure_output_dir()
