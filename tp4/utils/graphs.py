@@ -170,16 +170,9 @@ def plot_kohonen_k3_results(kohonen_network, data, country_labels):
     
     for i, (row, col) in enumerate(country_mappings):
         country_name = country_labels[i]
-        # Calculate a score based on inverse distance (closer = higher score)
-        winning_neuron = kohonen_network.weights[row, col]
-        distance = np.linalg.norm(data[i] - winning_neuron)
-        # Use a better scoring system: normalize distance and convert to 1-100 scale
-        max_possible_distance = np.sqrt(len(data[i]))  # Max possible distance in standardized space
-        normalized_distance = distance / max_possible_distance
-        score = max(1, int(100 * (1 - normalized_distance)))  # Closer = higher score
-        
         abbrev = country_abbrev.get(country_name, country_name[:3].upper())
-        label_map[row][col].append(f"{abbrev}: {score}")
+        # Use country index in dataset as the number (like reference implementation)
+        label_map[row][col].append(f"{abbrev}: {i}")
     
     # Get U-matrix
     u_matrix = kohonen_network.get_unified_matrix()
@@ -225,16 +218,15 @@ def plot_kohonen_k3_results(kohonen_network, data, country_labels):
     im2 = ax2.imshow(u_matrix, cmap='RdYlBu_r', alpha=0.9)
     ax2.set_title('Distancias promedio entre neuronas vecinas (U-Matrix)', fontsize=14, pad=20)
     
-    # Add country labels on U-matrix as well
+    # Add country labels on U-matrix (abbreviations only, no numbers or extras)
     for i in range(k):
         for j in range(k):
             countries = label_map[i][j]
             if countries:
-                # Show only first few countries to avoid overcrowding
-                display_countries = countries[:3]  # Show max 3 countries
-                if len(countries) > 3:
-                    display_countries.append(f"... +{len(countries)-3}")
-                country_text = '\n'.join(display_countries)
+                # Extract just the country abbreviations without the numbers
+                country_abbrevs = [country.split(':')[0] for country in countries]
+                # Show ALL countries, just abbreviations
+                country_text = '\n'.join(country_abbrevs)
                 ax2.text(j, i, country_text,
                         ha='center', va='center', fontsize=8,
                         color='black', fontweight='bold')
@@ -354,17 +346,15 @@ def plot_kohonen_k_results(kohonen_network, data, country_labels, k_value=None):
     im2 = ax2.imshow(u_matrix, cmap='RdYlBu_r', alpha=0.9)
     ax2.set_title('Distancias promedio entre neuronas vecinas (U-Matrix)', fontsize=14, pad=20)
     
-    # Add country labels on U-matrix as well
+    # Add country labels on U-matrix (abbreviations only, no numbers or extras)
     for i in range(k):
         for j in range(k):
             countries = label_map[i][j]
             if countries:
-                # Show fewer countries for larger k
-                max_display = max(1, 4 - k)
-                display_countries = countries[:max_display]
-                if len(countries) > max_display:
-                    display_countries.append(f"... +{len(countries)-max_display}")
-                country_text = '\n'.join(display_countries)
+                # Extract just the country abbreviations without the numbers
+                country_abbrevs = [country.split(':')[0] for country in countries]
+                # Show ALL countries, just abbreviations
+                country_text = '\n'.join(country_abbrevs)
                 # Use exact integer coordinates for center
                 ax2.text(j, i, country_text,
                         ha='center', va='center', fontsize=max(8, country_fontsize),
