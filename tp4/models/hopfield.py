@@ -26,12 +26,10 @@ class Hopfield:
         self.weights /= float(self.size)
         np.fill_diagonal(self.weights, 0.0)
 
-    def recall(self, pattern, max_steps=200, asynchronous=True, record_energy=False):
+    def recall(self, pattern, max_steps=200, record_energy=False):
         """
         Run recall from initial pattern.
         Returns list of states (each 1D length self.size). First element is the input.
-        synchronous (default): next_state = sign(W @ current)
-        asynchronous: random sequential updates within each step (in-place updates).
         If record_energy True, returns (evolution, energy_values).
         """
         current = np.asarray(pattern).copy().reshape(self.size)
@@ -39,22 +37,10 @@ class Hopfield:
         energy_values = [self.energy(current)] if record_energy else None
 
         for step in range(max_steps):
-            if asynchronous:
-                prev = current.copy()
-                for i in np.random.permutation(self.size):
-                    act = np.dot(self.weights[i, :], current)
-                    current[i] = 1 if act > 0 else -1
-                evolution.append(current.copy())
-            else:
-                # synchronous update
-                activations = self.weights.dot(current)
-                next_state = np.where(activations >= 0, 1, -1)
-                evolution.append(next_state.copy())
-                # detect 2-cycle: compare with state two steps back
-                if len(evolution) >= 3 and np.array_equal(evolution[-1], evolution[-3]):
-                    # oscillation detected (2-cycle), stop
-                    break
-                current = next_state
+            for i in np.random.permutation(self.size):
+                act = np.dot(self.weights[i, :], current)
+                current[i] = 1 if act > 0 else -1
+            evolution.append(current.copy())
 
             if record_energy:
                 energy_values.append(self.energy(current))
