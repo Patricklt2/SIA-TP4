@@ -30,10 +30,10 @@ def load_and_std_europa(path=None):
     numerics_vars = df.columns.drop('Country')
     numerics_data = df[numerics_vars].values.astype(float)
 
-    boxplot(numerics_data, numerics_vars, "Antes de la estandarización")
+    boxplot(numerics_data, numerics_vars, "Antes de la estandarización", "boxplot_before_standardization.png")
 
     numerics_data_std = standardize(numerics_data)
 
-    boxplot(numerics_data_std, numerics_vars, "Después de la estandarización")
+    boxplot(numerics_data_std, numerics_vars, "Después de la estandarización", "boxplot_after_standardization.png")
 
     return numerics_data_std, country_labels, list(numerics_vars)

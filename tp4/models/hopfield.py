@@ -43,7 +43,7 @@ class Hopfield:
                 prev = current.copy()
                 for i in np.random.permutation(self.size):
                     act = np.dot(self.weights[i, :], current)
-                    current[i] = 1 if act >= 0 else -1
+                    current[i] = 1 if act > 0 else -1
                 evolution.append(current.copy())
             else:
                 # synchronous update
@@ -66,21 +66,10 @@ class Hopfield:
         if record_energy:
             return evolution, energy_values
         return evolution
+    
 
     def energy(self, pattern):
         s = np.asarray(pattern).reshape(self.size)
         return -0.5 * float(s.T.dot(self.weights).dot(s))
 
-    def plot_pattern(self, pattern, title=None):
-        p = np.asarray(pattern).reshape(int(np.sqrt(self.size)), int(np.sqrt(self.size)))
-        plt.imshow(p, cmap='gray', vmin=-1, vmax=1)
-        if title: plt.title(title)
-        plt.axis('off')
-        plt.show()
 
-    def identify_spurious_state(self, noisy_pattern, **recall_kwargs):
-        """
-        Return final converged state (1D array) for a noisy input.
-        """
-        evolution = self.recall(noisy_pattern, **recall_kwargs)
-        return evolution[-1]
