@@ -2,15 +2,15 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from models.hopfield import Hopfield
-from data.letters import A, B, C, J, D, X, K, M, L, I, S, U, N, O
+from data.letters import A, B, C, J, D, X, K, M, L, I, S, U, N, O, E, R, F
 
 OUTPUT_DIR = 'results/hopfield'
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 
-PATTERNS = [A, B, C, J]
-PATTERN_LABELS = ['A', 'B', 'C', 'J']
+PATTERNS = [A, K, S, J]
+PATTERN_LABELS = ['A', 'K', 'S', 'J']
 PATTERN_SIZE = A.size
 PATTERN_SHAPE = A.shape
 
@@ -191,11 +191,14 @@ def main():
     print(f"Hopfield network created with {PATTERN_SIZE} neurons.")
     print(f"Trained with {len(PATTERNS)} patterns: {', '.join(PATTERN_LABELS)}.\n")
 
-    recall(flat_patterns[0], hopfield_net, title="Recall Evolution for Pattern 'A'",
+    recall(A.flatten(), hopfield_net, title="Recall Evolution for Pattern 'A'",
            outpath=os.path.join(OUTPUT_DIR, "recall_evolution_grid_A.png"))
 
-    recall(D.flatten(), hopfield_net, title="Recall Evolution for Pattern 'D'",
-           outpath=os.path.join(OUTPUT_DIR, "recall_evolution_grid_D.png"))
+    recall(F.flatten(), hopfield_net, title="Recall Evolution for Pattern 'F'",
+           outpath=os.path.join(OUTPUT_DIR, "recall_evolution_grid_F.png"))
+    
+    recall(B.flatten(), hopfield_net, title="Recall Evolution for Pattern 'B'",
+           outpath=os.path.join(OUTPUT_DIR, "recall_evolution_grid_B.png"))
     
     recall(X.flatten(), hopfield_net, title="Recall Evolution for Pattern 'X'",
            outpath=os.path.join(OUTPUT_DIR, "recall_evolution_grid_X.png"))
@@ -219,6 +222,7 @@ def main():
         recall(noisy_A.flatten(), hopfield_net,
                title=f"Recall Evolution for Noisy Pattern 'A' ({n_flips} Flips)",
                outpath=os.path.join(OUTPUT_DIR, f"recall_evolution_grid_noisy_A_{n_flips}_flips2.png"))
+
         
     n_trials = 1000
     success_count = []
@@ -237,7 +241,7 @@ def main():
 
 
     success_count_size = []
-    letters_train = [A, B, C, J, M, L, I, S, N, O, U, D, K]
+    letters_train = [A, K, S, J, U, I, M, E, R]
     flat_letters = [p.flatten() for p in letters_train]
 
     for i in range(1, len(flat_letters) + 1):
