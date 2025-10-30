@@ -14,6 +14,7 @@ from utils.graphs import (
     plot_oja_convergence,
     plot_oja_output_evolution,
     plot_oja_data_projection,
+    plot_country_projections,
     # New heatmap visualizations
     plot_feature_heatmaps,
     plot_combined_feature_heatmap,
@@ -95,7 +96,7 @@ def ejercicio_kohonen_k_comparison(scaled_data, country_labels, feature_names):
     
     return networks
 
-def ejercicio_1_oja(scaled_data, feature_names):
+def ejercicio_1_oja(scaled_data, feature_names, country_names):
     input_dim = scaled_data.shape[1]
     epochs = 100
     learning_rate = 0.001
@@ -128,7 +129,16 @@ def ejercicio_1_oja(scaled_data, feature_names):
     
     plot_pc1_comparison(pc1_loadings_oja, pc1_loadings_sklearn_aligned, feature_names)
     
-    return diff
+    projections = np.dot(scaled_data, pc1_loadings_oja) 
+    
+    projections_df = pd.DataFrame({
+        'País': country_names,
+        'Proyección_PC1_Oja': projections
+    }).sort_values(by='Proyección_PC1_Oja', ascending=False).reset_index(drop=True)
+
+    plot_oja_data_projection(scaled_data, pc1_loadings_oja, feature_names)
+
+    return diff, projections_df
 
 
 if __name__ == "__main__":
@@ -153,8 +163,8 @@ if __name__ == "__main__":
         print("\n" + "=" * 60)
         print("🔢 EJERCICIO 1.2: REGLA DE OJA")  
         print("=" * 60)
-        oja_diff = ejercicio_1_oja(scaled_data, feature_names)
-        
+        oja_diff, country_projections_df = ejercicio_1_oja(scaled_data, feature_names, country_labels)
+        plot_country_projections(country_projections_df)
         print(f"\n✅ Análisis completado!")
         print(f"📊 Diferencia Oja vs sklearn PCA: {oja_diff:.6f}")
         print(f"🗂️ Resultados guardados en: results/")

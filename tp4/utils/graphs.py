@@ -139,6 +139,26 @@ def plot_oja_data_projection(data, w, feature_names):
     plt.savefig(os.path.join(OUTPUT_DIR, 'oja_data_projection.png'), bbox_inches='tight')
     plt.close()
 
+def plot_country_projections(projections_df):
+    df_plot = projections_df.sort_values(by='Proyección_PC1_Oja', ascending=True) 
+
+    plt.figure(figsize=(10, 0.4 * len(df_plot))) 
+    sns.barplot(
+        x='Proyección_PC1_Oja', 
+        y='País', 
+        data=df_plot, 
+        palette='vlag'
+    )
+    
+    plt.title('Puntuación (Score) de PC1 (Regla de Oja) por País')
+    plt.xlabel('Proyección sobre la Primera Componente Principal (PC1)')
+    plt.ylabel('País')
+    plt.axvline(0, color='black', linestyle='--', linewidth=0.8) # Línea en cero
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, 'oja_country_projection.png'), bbox_inches='tight')
+    plt.close()
+
 def plot_kohonen_k3_results(kohonen_network, data, country_labels):
     """
     Create the specific k=3 visualization with country assignments and U-matrix
