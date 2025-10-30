@@ -16,13 +16,13 @@ python3 tp4/main_europa.py
 
 - Patterns (Hopfield):
 ```bash
-python3 tp4/main_patrones.py
+python3 tp4/main_hopfield.py
 ```
 
 Outputs
-- Figures and plots are saved in `results/` and `results/patterns/`.
+- Figures and plots are saved in `results/`.
 - Console prints show progress and brief summaries.
 
 Notes
 - Change or remove the random seed in scripts to vary results.
-- If a required package is missing, install it with `pip install <package>`.
+

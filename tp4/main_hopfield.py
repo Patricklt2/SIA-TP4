@@ -82,6 +82,7 @@ def plot_evolution_grid(evolution, energy_values=None, pattern_shape=(5, 5),
     plt.tight_layout()
     if outpath:
         plt.savefig(outpath, bbox_inches='tight', dpi=150)
+    plt.close()
 
 
 def flip_random_pixels(pattern, n_flips, rng=None):
